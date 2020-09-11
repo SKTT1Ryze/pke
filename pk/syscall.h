@@ -64,6 +64,8 @@
 #define SYS_lstat 1039
 #define SYS_time 1062
 
+#define SYS_get_memsize 81
+
 #define IS_ERR_VALUE(x) ((unsigned long)(x) >= (unsigned long)-4096)
 #define ERR_PTR(x) ((void*)(long)(x))
 #define PTR_ERR(x) ((long)(x))

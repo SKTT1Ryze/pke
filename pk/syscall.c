@@ -187,9 +187,6 @@ long sys_linkat(int old_dirfd, const char* old_name, int new_dirfd, const char* 
   return -EBADF;
 }
 
-
-
-
 int sys_renameat(int old_fd, const char *old_path, int new_fd, const char *new_path) {
   int old_kfd = at_kfd(old_fd);
   int new_kfd = at_kfd(new_fd);
@@ -241,9 +238,6 @@ int sys_uname(void* buf)
   return 0;
 }
 
-
-
-
 int sys_rt_sigaction(int sig, const void* act, void* oact, size_t sssz)
 {
   if (oact)
@@ -272,8 +266,6 @@ int sys_times(long* loc)
   return 0;
 }
 
-
-
 ssize_t sys_writev(int fd, const long* iov, int cnt)
 {
   ssize_t ret = 0;
@@ -287,8 +279,6 @@ ssize_t sys_writev(int fd, const long* iov, int cnt)
   return ret;
 }
 
-
-
 static int sys_stub_success()
 {
   return 0;
@@ -297,6 +287,12 @@ static int sys_stub_success()
 static int sys_stub_nosys()
 {
   return -ENOSYS;
+}
+
+long int sys_get_memsize() {
+  extern uintptr_t mem_size;
+  printk("\nphysical mem_size = 0x%x\n", mem_size);
+  return mem_size;
 }
 
 long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n)
@@ -328,6 +324,7 @@ long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, unsigned l
     [SYS_setrlimit] = sys_stub_nosys,
     [SYS_set_tid_address] = sys_stub_nosys,
     [SYS_set_robust_list] = sys_stub_nosys,
+    [SYS_get_memsize] = sys_get_memsize,
   };
 
   syscall_t f = 0;
