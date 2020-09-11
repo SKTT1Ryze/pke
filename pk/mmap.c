@@ -8,6 +8,8 @@
 #include "mtrap.h"
 #include <stdint.h>
 #include <errno.h>
+#include <pmm.h>
+#include <defs.h>
 
 typedef struct {
   uintptr_t addr;
@@ -29,7 +31,8 @@ static size_t free_pages;
 
 int demand_paging = 1; // unless -p flag is given
 
-static uintptr_t __page_alloc()
+//static uintptr_t __page_alloc()
+uintptr_t __page_alloc()
 {
   kassert(next_free_page != free_pages);
   uintptr_t addr = first_free_page + RISCV_PGSIZE * next_free_page++;
@@ -111,7 +114,8 @@ static pte_t* __walk_internal(uintptr_t addr, int create)
   return &t[pt_idx(addr, 0)];
 }
 
-static pte_t* __walk(uintptr_t addr)
+//static pte_t* __walk(uintptr_t addr)
+pte_t* __walk(uintptr_t addr)
 {
   return __walk_internal(addr, 0);
 }
@@ -387,5 +391,7 @@ uintptr_t pk_vm_init()
   write_csr(sptbr, ((uintptr_t)root_page_table >> RISCV_PGSHIFT) | SATP_MODE_CHOICE);
 
   uintptr_t kernel_stack_top = __page_alloc() + RISCV_PGSIZE;
+  
+  pmm_init();
   return kernel_stack_top;
 }
