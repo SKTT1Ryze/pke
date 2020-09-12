@@ -202,10 +202,13 @@ int __valid_user_range(uintptr_t vaddr, size_t len)
 
 static int __handle_page_fault(uintptr_t vaddr, int prot)
 {
-  printk("page fault vaddr:0x%lx\n", vaddr);
+  printk("page fault vaddr @ 0x%lx\n", vaddr);
   //your code here 
   //start------------>
-  	pte_t* pte =0;
+
+  vaddr = (vaddr >> RISCV_PGSHIFT) << RISCV_PGSHIFT;
+  pte_t* pte = __walk(vaddr);
+  printk("pte: 0x%lx\n", pte);
 
   //<-----------end
   if (pte == 0 || *pte == 0 || !__valid_user_range(vaddr, 1))
@@ -215,10 +218,17 @@ static int __handle_page_fault(uintptr_t vaddr, int prot)
 
     //your code here
     //start--------->
-
-   	 uintptr_t ppn =0;
-   	 vmr_t* v = NULL;
-   
+    /*
+    struct Page* new_page = alloc_page();
+    uintptr_t ppn = page2ppn(new_page);
+   	vmr_t* v = (vmr_t*)*pte;
+    *pte = pte_create(ppn, prot_to_type(PROT_READ | PROT_WRITE, 0));
+    flush_tlb();
+    */
+    uintptr_t ppn = (vaddr >> RISCV_PGSHIFT) + (first_free_paddr / RISCV_PGSIZE);
+    vmr_t* v = (vmr_t*)*pte;
+    *pte = pte_create(ppn, prot_to_type(PROT_READ|PROT_WRITE, 0));
+    flush_tlb();
     //<----------end
 
     if (v->file)

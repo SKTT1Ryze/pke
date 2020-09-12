@@ -75,8 +75,15 @@ alloc_proc(void) {
      * 
      * then remove the panic; 
      */
-        panic("you need add code in alloc_proc() first");
-
+    
+    printk("alloc proc...\n");
+    proc->state = PROC_SLEEPING;
+    proc->pid = 0;
+    proc->runs = 0;
+    proc->need_resched = 0;
+    proc->parent = NULL;
+    proc->tf = NULL;
+    set_proc_name(proc,"new_proc");
     }
     return proc;
 }
@@ -220,8 +227,9 @@ copy_mm(uint32_t clone_flags, struct proc_struct *proc) {
     //assert(currentproc->mm == NULL);
     /* do nothing in this project */
     uintptr_t cr3=(uintptr_t)__page_alloc();
-     memcpy((void *)cr3,(void *)proc->cr3,RISCV_PGSIZE);
-     proc->cr3=cr3;
+    printk("cr3: 0x%ld\n", cr3);
+    memcpy((void *)cr3, (void *)proc->cr3, RISCV_PGSIZE);
+    proc->cr3=cr3;
     return 0;
 }
 
@@ -278,9 +286,27 @@ do_fork(uint32_t clone_flags, uintptr_t stack, trapframe_t *tf) {
     //    6. call wakeup_proc to make the new child process RUNNABLE
     //    7. set ret vaule using child proc's pid
     //    then remove the panic
-    panic("you need add code in do_fork() first");
 
+    if((proc = alloc_proc()) == NULL) {
+        panic("cannot alloc pcb in do_fork()\n");
+    }
+    setup_kstack(proc);
+    copy_mm(clone_flags,proc);
+    copy_thread(proc,stack,tf);
+    if(list_empty(&proc_list)) {
+        list_add(&proc_list, &(proc->list_link));
+    }
+    else {
+        list_entry_t* le = &proc_list;
+        while ((le = list_next(le)) != &proc_list) {};
+        list_add(le, &(proc->list_link));
+    }
 
+    hash_proc(proc);
+    proc->state = PROC_RUNNABLE;
+    //ret = proc->pid = get_pid();
+    ret = proc->pid = 1;
+    nr_process++;
 fork_out:
     return ret;
 
