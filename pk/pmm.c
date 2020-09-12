@@ -24,6 +24,7 @@ int pmm_init(){
     pmm_manager->pmm_check();
     return 0;
 }
+
 int pk_default_pmm_alloc(){
 	return 0;
 }
@@ -70,12 +71,56 @@ default_init_memmap(struct Page *base, size_t n) {
 
 static struct Page *
 default_alloc_pages(size_t n) {
+    if (list_empty(&free_list) || nr_free < n) return NULL;
+    list_entry_t* new_le = &free_list;
+    while ((new_le = list_next(new_le)) != &free_list) {
+        if (le2page(new_le, page_link)->property > n) {
+            struct Page* new_page = le2page(new_le, page_link);
+            (new_page + n) -> property = new_page -> property - n;
+            new_page -> flags = 1;
+            (new_page + n) -> flags = 0;
+            set_page_ref((new_page + n), 0);
+            list_add(list_prev(new_le), &((new_page + n) -> page_link));
+            list_del(new_le);
+            printk("return page: 0x%lx\n", new_page);
+            nr_free -= n;
+            return new_page;
+        }
+        else if (le2page(new_le, page_link)->property == n) {
+            list_del(new_le);
+            printk("return page: 0x%lx\n", le2page(new_le, page_link));
+            nr_free -= n;
+            return le2page(new_le, page_link);
+        }
+    }
     return NULL;
 }
 
 
 static void
 default_free_pages(struct Page *base, size_t n) {
+    struct Page *p = base;
+    for (; p != base + n; p ++) {
+        p->flags = p->property = 0;
+        set_page_ref(p, 0);
+    }
+    base->property = n;
+    if (list_empty(&free_list)) {
+        list_add(&free_list, &(base->page_link));
+    }
+    else {
+        list_entry_t* le = &free_list;
+        while ((le = list_next(le)) != &free_list) {
+            if(base < le2page(le, page_link)) {
+                list_add_before(le, &(base -> page_link));
+                break;
+            }
+            else if (list_next(le) == &free_list) {
+                list_add(le, &(base->page_link));
+            }
+        }
+    }
+    nr_free += n;
 }
 
 static size_t
@@ -102,7 +147,7 @@ basic_check(void) {
 
     unsigned int nr_free_store = nr_free;
     nr_free = 0;
-   free_page(p0);
+    free_page(p0);
     free_page(p1);
     free_page(p2);
     assert(nr_free == 3);
