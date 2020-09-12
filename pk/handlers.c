@@ -30,7 +30,16 @@ static void handle_illegal_instruction(trapframe_t* tf)
 //  根据tf->epc得到tf->insn
 //  打印tf
 //  修改panic
-	panic("you need add your code!");
+	tf->insn = *(uint16_t*)tf->epc;
+  if (insn_len(tf->insn) == 4)
+  {
+    tf->insn |= ((uint32_t)*(uint16_t*)(tf->epc + 2) << 16);
+  }
+  else {
+    kassert(insn_len(tf->insn) == 2);
+  }
+  dump_tf(tf);
+	panic("An illegal instruction was executed!");
 }
 
 static void handle_breakpoint(trapframe_t* tf)
@@ -64,7 +73,13 @@ static void segfault(trapframe_t* tf, uintptr_t addr, const char* type)
 //  打印trapframe
 //  判断是内核空间还是用户空间
 //  修改panic信息
- 	panic("you need add your code!");
+ 	dump_tf(tf);
+  if (tf->status & SSTATUS_SPP) {
+    panic("Kernel %s segfault @ 0x%lx\n", type, addr);  
+  }
+  else {
+    panic("User %s segfault @ 0x%lx\n", type, addr);
+  }
 }
 
 static void handle_fault_fetch(trapframe_t* tf)

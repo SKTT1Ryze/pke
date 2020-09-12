@@ -204,26 +204,27 @@ static int __handle_page_fault(uintptr_t vaddr, int prot)
   printk("page fault vaddr:0x%lx\n", vaddr);
   //your code here 
   //start------------>
-  	pte_t* pte =0;
-
+  vaddr = (vaddr >> RISCV_PGSHIFT) << RISCV_PGSHIFT;
+  pte_t* pte = __walk(vaddr);
+  //printk("pte: 0x%lx\n", pte);
   //<-----------end
   if (pte == 0 || *pte == 0 || !__valid_user_range(vaddr, 1))
     return -1;
   else if (!(*pte & PTE_V))
   {
-
     //your code here
     //start--------->
-
-   	 uintptr_t ppn =0;
-   	 vmr_t* v = NULL;
-   
+   	struct Page* new_page = alloc_page();
+    uintptr_t ppn = page2ppn(new_page);
+   	vmr_t* v = (vmr_t*)*pte;
+    *pte = pte_create(ppn, prot_to_type(PROT_READ | PROT_WRITE, 0));
+    flush_tlb();
     //<----------end
 
     if (v->file)
     {
       size_t flen = MIN(RISCV_PGSIZE, v->length - (vaddr - v->addr));
-     // ssize_t ret = file_pread(v->file, (void*)vaddr, flen, vaddr - v->addr + v->offset);
+      //ssize_t ret = file_pread(v->file, (void*)vaddr, flen, vaddr - v->addr + v->offset);
       ssize_t ret = file_pread_pnn(v->file, (void*)vaddr, flen, ppn, vaddr - v->addr + v->offset);
       kassert(ret > 0);
       if (ret < RISCV_PGSIZE)
