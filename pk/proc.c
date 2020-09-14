@@ -77,13 +77,18 @@ alloc_proc(void) {
      */
     
     printk("alloc proc...\n");
-    proc->state = PROC_SLEEPING;
-    proc->pid = 0;
+    proc->state = PROC_UNINIT;
+    proc->pid = -1;
     proc->runs = 0;
+    proc->kstack = 0;
     proc->need_resched = 0;
     proc->parent = NULL;
+    memset(&(proc->context), 0, sizeof(struct context));
     proc->tf = NULL;
-    set_proc_name(proc,"new_proc");
+    proc->cr3 = (uintptr_t)root_page_table;
+    proc->flags = 0;
+    memset(proc->name, 0, PROC_NAME_LEN);
+    //set_proc_name(proc,"new_proc");
     }
     return proc;
 }
@@ -287,7 +292,7 @@ do_fork(uint32_t clone_flags, uintptr_t stack, trapframe_t *tf) {
     //    7. set ret vaule using child proc's pid
     //    then remove the panic
 
-    if((proc = alloc_proc()) == NULL) {
+    /* if((proc = alloc_proc()) == NULL) {
         panic("cannot alloc pcb in do_fork()\n");
     }
     setup_kstack(proc);
@@ -306,7 +311,28 @@ do_fork(uint32_t clone_flags, uintptr_t stack, trapframe_t *tf) {
     proc->state = PROC_RUNNABLE;
     //ret = proc->pid = get_pid();
     ret = proc->pid = 1;
+    nr_process++; */
+
+    if ((proc = alloc_proc()) == NULL) {
+        goto fork_out;
+    }
+    if ((ret = setup_kstack(proc)) == -E_NO_MEM) {
+        goto bad_fork_cleanup_proc;
+    }
+
+    copy_mm(clone_flags, proc);
+
+    copy_thread(proc, stack, tf);
+
+    const int pid = get_pid();
+    proc->pid = pid;
+    list_add(hash_list + pid_hashfn(pid), &(proc->hash_link));
+    list_add(&proc_list, &(proc->list_link));
     nr_process++;
+
+    wakeup_proc(proc);
+    ret = pid;
+
 fork_out:
     return ret;
 
@@ -364,6 +390,7 @@ proc_init() {
     currentproc = idleproc;
 
 }
+
 
 // cpu_idle - at the end of kern_init, the first kernel thread idleproc will do below works
 void
