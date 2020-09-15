@@ -322,6 +322,10 @@ void  sys_get_init_memsize(){
   //  printk
 }
 
+static int sys_test_user() {
+  printk("handle 81 syscall sys_test_user.\n");
+  return 0;
+}
 
 
 long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n)
@@ -357,6 +361,7 @@ long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, unsigned l
     [SYS_setrlimit] = sys_stub_nosys,
     [SYS_set_tid_address] = sys_stub_nosys,
     [SYS_set_robust_list] = sys_stub_nosys,
+    [SYS_test_user] = sys_test_user,
   };
 
   syscall_t f = 0;

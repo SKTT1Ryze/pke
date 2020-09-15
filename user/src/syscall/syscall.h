@@ -1,7 +1,5 @@
-// See LICENSE for license details.
+/// syscall call head file
 
-#ifndef _PK_SYSCALL_H
-#define _PK_SYSCALL_H
 #define SYS_init_memsize 81
 #define SYS_exit 93
 #define SYS_exit_group 94
@@ -67,12 +65,4 @@
 
 #define SYS_test_user 81 
 
-#define IS_ERR_VALUE(x) ((unsigned long)(x) >= (unsigned long)-4096)
-#define ERR_PTR(x) ((void*)(long)(x))
-#define PTR_ERR(x) ((long)(x))
-
-#define AT_FDCWD -100
-
-long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n);
-
-#endif
+int syscall(int syscall_id);
